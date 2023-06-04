@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+package log.v1;
+
+option go_package = "github.com/travisjeffery/api/log_v1";
+
+/** 
+    プロジェクトで使用する場合は基本編集できない 
+    フィールドは削除せずに新規で追加は可能
+*/
+message Record {
+    bytes value = 1;
+    uint64 offset = 2;
+}

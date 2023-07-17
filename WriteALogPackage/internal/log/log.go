@@ -23,6 +23,11 @@ type Log struct {
 	segments []*segment
 }
 
+type originReader struct {
+	*store
+	off int64
+}
+
 func NewLog(dir string, c Config) (*Log, error) {
 	if c.Segment.MaxStoreBytes == 0 {
 		c.Segment.MaxStoreBytes = 1024
@@ -162,4 +167,47 @@ func (l *Log) highestOffset() (uint64, error) {
 	}
 
 	return off - 1, nil
+}
+
+func (l *Log) Truncate(lowest uint64) error {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	var segments []*segment
+	for _, s := range l.segments {
+		if s.nextOffset <= lowest+1 {
+			if err := s.Remove(); err != nil {
+				return err;
+			}
+			continue
+		}
+		segments = append(segments, s)
+	}
+	l.segments = segments
+	return nil
+}
+
+func (l *Log) Reader() io.Reader {
+	l.mu.RLock()
+	defer l.mu.RUnlock()
+	readers := make([]io.Reader, len(l.segments))
+	for i, segment := range l.segments {
+		readers[i] = &originReader{segment.store, 0}
+	}
+	return io.MultiReader(readers...)
+}
+
+func (o *originReader) Read(p []byte) (int, error) {
+	n, err := o.ReadAt(p, o.off)
+	o.off += int64(n)
+	return n, err
+}
+
+func (l *Log) newSegment(off uint64) error {
+	s, err := newSegment(l.Dir, off, l.Config)
+	if err != nil {
+		return err
+	}
+	l.segments = append(l.segments, s)
+	l.activeSegment = s
+	return nil
 }

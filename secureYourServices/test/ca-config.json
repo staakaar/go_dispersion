@@ -1,0 +1,22 @@
+{
+    "singning": {
+        "profiles": {
+            "server": {
+                "expiry": "8760h",
+                "usages": [
+                    "singning",
+                    "key encipherment",
+                    "server auth"
+                ]
+            },
+            "client": {
+                "expiry": "8760h",
+                "usages": [
+                    "signing",
+                    "key encipherment",
+                    "client auth"
+                ]
+            }
+        }
+    }
+}
